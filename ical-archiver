@@ -105,7 +105,11 @@ def main():
 
       for t in ['vevent', 'vtodo', 'vjournal']:
             count = 0
-            for event in cal.__getattr__(t + "_list"):
+            try:
+                  list = cal.__getattr__(t + "_list")
+            except AttributeError:
+                  break
+            for event in list:
                   count = count + 1
                   #print event.prettyPrint()
                   if event.getrruleset():
