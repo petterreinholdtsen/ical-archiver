@@ -30,6 +30,6 @@ setup(name='iCal archiver',
       author_email= prog['__author__'].split('<')[1].split('>')[0].strip(),
       url         = prog['__homepage__'],
       license     = prog['__license__'],
-      requires    = ['vobject'],
+      requires    = ['dateutil', 'pytz', 'vobject'],
       scripts     = ['ical-archiver'],
       )
