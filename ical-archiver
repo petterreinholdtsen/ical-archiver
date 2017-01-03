@@ -35,30 +35,30 @@ import vobject
 yearlimit = 2
 
 def usage():
-      print """Usage: ical-archives [ical-file]
+      print("""Usage: ical-archives [ical-file]
 
 Archive old iCalendar entries in a file by moving them to year based
 files.
 
 The entries at or ending (repeating) a given year %d years in the past
 are moved to iCalendar files named after the year.
-""" % yearlimit
+""" % yearlimit)
 
 def writeical(filename, cal):
-      print "Writing %s" % filename
+      print("Writing %s" % filename)
       stream = cal.serialize()
       f = open(filename, 'w')
       f.write(stream)
       f.close()
 
 def lastRRuleDate(event):
-      #print event.prettyPrint()
-      #print event.serialize()
+      #print(event.prettyPrint())
+      #print(event.serialize())
       ruleset = event.getrruleset()
 
       # This fail with 'TypeError: can't compare offset-naive and
       # offset-aware datetimes'
-      #print ruleset[-1]
+      #print(ruleset[-1])
 
       # Hack to find the last until date.  Unable to
       # find documented API for this, so I peek into
@@ -90,8 +90,7 @@ def main():
       splitcals = {}
 
       icalstream = open(filename)
-      components = vobject.readComponents(icalstream, validate=True)
-      cal = components.next()
+      cal = vobject.readOne(icalstream, validate=True)
 
       # Filter over components, sort them in groups.  Next, write the
       # collections to separate files and remove them from the source
@@ -114,7 +113,7 @@ def main():
                   break
             for event in list:
                   count = count + 1
-                  #print event.prettyPrint()
+                  #print(event.prettyPrint())
                   if event.getrruleset():
 
                         until = lastRRuleDate(event)
@@ -132,7 +131,7 @@ def main():
                   elif hasattr(event, 'created'):
                         y = event.created.value.year
                   else:
-                        print event.prettyPrint()
+                        print(event.prettyPrint())
                         raise Exception("Unable to handle event")
                   if y < oldyear:
                         year = '%s-%d' % (t, y)
@@ -140,7 +139,7 @@ def main():
                               splitcals[year] = \
                                 vobject.newFromBehavior(componentmap[t])
                         splitcals[year].add(event)
-            print count, "found %ss" % t
+            print("Found %d %ss" % (count, t))
 
 
       for sub in sorted(splitcals.keys()):
