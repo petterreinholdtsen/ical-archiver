@@ -18,8 +18,11 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 
-__author__ = "Petter Reinholdtsen <pere@hungry.com>"
-__version__ = "0.0.0"
+__author__   = "Petter Reinholdtsen <pere@hungry.com>"
+__version__  = "0.0"
+__summary__  = "Archive old iCalendar entries into files per year"
+__homepage__ = "https://github.com/petterreinholdtsen/ical-archiver"
+__license__  = "GPL"
 
 import datetime
 import dateutil
