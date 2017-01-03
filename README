@@ -1,0 +1,11 @@
+iCalendar archiver
+==================
+
+Tool to archive old iCalendar entries into files per year.
+
+Is your iCalendar file getting big?  Is turning it on and off in your
+calendar application getting slow?  If so, you might want to split off
+the old entries into separate files.  This tool is for you.
+
+The latest version can be found on
+<URL: https://github.com/petterreinholdtsen/ical-archiver >.

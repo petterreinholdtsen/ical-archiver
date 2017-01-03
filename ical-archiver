@@ -1,0 +1,149 @@
+#!/usr/bin/env python
+#
+# Copyright (C) 2017 Petter Reinholdtsen <pere@hungry.com>
+#
+# Licensed under the GNU General Public License Version 2
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+
+__author__ = "Petter Reinholdtsen <pere@hungry.com>"
+__version__ = "0.0.0"
+
+import datetime
+import dateutil
+import pytz
+import sys
+import vobject
+
+# Everything at or ending before this number of years, is moved to
+# archive files.
+yearlimit = 2
+
+def usage():
+      print """Usage: ical-archives [ical-file]
+
+Archive old iCalendar entries in a file by moving them to year based
+files.
+
+The entries at or ending (repeating) a given year %d years in the past
+are moved to iCalendar files named after the year.
+""" % yearlimit
+
+def writeical(filename, cal):
+      print "Writing %s" % filename
+      stream = cal.serialize()
+      f = open(filename, 'w')
+      f.write(stream)
+      f.close()
+
+def lastRRuleDate(event):
+      #print event.prettyPrint()
+      #print event.serialize()
+      ruleset = event.getrruleset()
+
+      # This fail with 'TypeError: can't compare offset-naive and
+      # offset-aware datetimes'
+      #print ruleset[-1]
+
+      # Hack to find the last until date.  Unable to
+      # find documented API for this, so I peek into
+      # the internal structures.
+      until = None
+      for rrule in ruleset._rrule:
+            if rrule._until:
+                  if not until or until < rrule._until:
+                        until = rrule._until
+            if rrule._count:
+                  d = datetime.timedelta(days=0)
+                  if dateutil.rrule.YEARLY == rrule._freq:
+                        d = datetime.timedelta(days=365)
+                  elif dateutil.rrule.MONTHLY == rrule._freq:
+                        d = datetime.timedelta(days=30)
+                  elif dateutil.rrule.DAILY == rrule._freq:
+                        d = datetime.timedelta(days=1)
+                  until = event.dtstart.value + d * rrule._count
+
+      return until
+
+def main():
+      if 1 < len(sys.argv):
+            filename = sys.argv[1]
+      else:
+            usage()
+            return 0
+
+      splitcals = {}
+
+      icalstream = open(filename)
+      components = vobject.readComponents(icalstream, validate=True)
+      cal = components.next()
+
+      # Filter over components, sort them in groups.  Next, write the
+      # collections to separate files and remove them from the source
+      # collection.
+
+      count = 0
+      oldyear = datetime.datetime.now(pytz.utc).year - yearlimit
+
+      componentmap = {
+            'vevent'   : 'vcalendar',
+            'vtodo'    : 'vtodo',
+            'vjournal' : 'vjournal',
+            }
+
+      for t in ['vevent', 'vtodo', 'vjournal']:
+            count = 0
+            for event in cal.__getattr__(t + "_list"):
+                  count = count + 1
+                  #print event.prettyPrint()
+                  if event.getrruleset():
+
+                        until = lastRRuleDate(event)
+
+                        if until:
+                              y = until.year
+                        else:
+                              y = datetime.datetime.now(pytz.utc).year + 1
+                  elif hasattr(event, 'dtend'):
+                        y = event.dtend.value.year
+                  elif hasattr(event, 'dtstart'):
+                        y = event.dtstart.value.year
+                  elif hasattr(event, 'due'):
+                        y = event.due.value.year
+                  elif hasattr(event, 'created'):
+                        y = event.created.value.year
+                  else:
+                        print event.prettyPrint()
+                        raise Exception("Unable to handle event")
+                  if y < oldyear:
+                        year = '%s-%d' % (t, y)
+                        if year not in splitcals:
+                              splitcals[year] = \
+                                vobject.newFromBehavior(componentmap[t])
+                        splitcals[year].add(event)
+            print count, "found %ss" % t
+
+
+      for sub in sorted(splitcals.keys()):
+            subfilename = '%s-subset-%s.ics' % (filename, sub)
+            writeical(subfilename, splitcals[sub])
+            for c in splitcals[sub].getChildren():
+                  cal.remove(c)
+
+      writeical('%s-remaining.ics' % filename, cal)
+      return 0
+
+if __name__ == '__main__':
+      main()
